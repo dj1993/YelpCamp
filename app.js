@@ -2,11 +2,12 @@ const express = require('express')
 const path = require('path')
 const mongoose = require('mongoose')
 const ejsMate = require('ejs-mate')
-const { campgroundSchema } = require('./schemas.js')
+const { campgroundSchema, reviewSchema } = require('./schemas.js')
 const catchAsync = require('./utils/catchAsync')
 const ExpressError = require('./utils/ExpressError')
 const methodOverride = require('method-override')
 const Campground = require('./models/campground')
+const Review = require('./models/review')
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp')
 
@@ -26,14 +27,6 @@ app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
 
 const validateCampground = (req, res, next) => {
-    const campgroundSchema = Joi.object({
-        campground: Joi.object({
-            title: Joi.string().required(),
-            price: Joi.number().required().min(0),
-            image: Joi.string().required(),
-            location: Joi.string().required()
-        }).required()
-    })
     const { error } = campgroundSchema.validate(req.body)
     if (error) {
         // Joi delivers an array with possibly many error messages
@@ -45,7 +38,20 @@ const validateCampground = (req, res, next) => {
     } else {
         next()
     }
-    const campground = new Campground(req.body.campground)
+}
+
+const validateReview = (req, res, next) => {
+    const { error } = reviewSchema.validate(req.body)
+    if (error) {
+        // Joi delivers an array with possibly many error messages
+        // We need to join them
+        const msg = error.details.map(el => el.message).join(',')
+        console.log(msg)
+
+        throw new ExpressError(msg, 400)
+    } else {
+        next()
+    }
 }
 
 app.get('/', (req, res) => {
@@ -68,7 +74,7 @@ app.post('/campgrounds', validateCampground, catchAsync(async (req, res, next) =
 }))
 
 app.get('/campgrounds/:id', catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id)
+    const campground = await Campground.findById(req.params.id).populate('reviews')
     res.render('campgrounds/show', { campground })
 }))
 
@@ -89,6 +95,25 @@ app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
     const { id } = req.params
     const campground = await Campground.findByIdAndDelete(id)
     res.redirect('/campgrounds')
+}))
+
+app.post('/campgrounds/:id/reviews', validateReview, catchAsync(async (req, res) => {
+    const campground = await Campground.findById(req.params.id)
+    const review = new Review(req.body.review)
+    campground.reviews.push(review)
+    review.save()
+    campground.save()
+    res.redirect(`/campgrounds/${campground._id}`)
+}))
+
+// Deleting a review
+app.delete('/campgrounds/:id/reviews/:reviewId', catchAsync(async (req, res) => {
+    const { id, reviewId } = req.params
+    await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } })
+    // This only removes the review from its' collection
+    // It doesn't remove the reference in the Campgrounds collection
+    await Review.findByIdAndDelete(reviewId)
+    res.redirect(`/campgrounds/${id}`)
 }))
 
 app.all('*', (req, res, next) => {
