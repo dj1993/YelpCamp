@@ -6,81 +6,28 @@ const Campground = require('../models/campground')
 const { campgroundSchema } = require('../schemas.js')
 const { isLoggedIn, isAuthor, validateCampground } = require('../middleware')
 
+// Controllers
+const campgroundController = require('../controllers/campgrounds')
 
+// Render the index form
+router.get('/', catchAsync(campgroundController.index))
 
+// Render the new campground form
+router.get('/new', isLoggedIn, catchAsync(campgroundController.renderNewForm))
 
-router.get('/', catchAsync(async (req, res) => {
-    const campgrounds = await Campground.find({})
-    res.render('campgrounds/index', { campgrounds })
-}))
+// Create a campground
+router.post('/', isLoggedIn, validateCampground, catchAsync(campgroundController.createCampground))
 
-router.get('/new', isLoggedIn, catchAsync(async (req, res) => {
-    res.render('campgrounds/new')
-}))
+// Render the show campground page
+router.get('/:id', catchAsync(campgroundController.showCampground))
 
-router.post('/', isLoggedIn, validateCampground, catchAsync(async (req, res, next) => {
-    const campground = new Campground(req.body.campground)
-    campground.author = req.user._id
-    await campground.save()
-    req.flash('success', 'Successfully created a new campground!')
-    res.redirect(`campgrounds/${campground._id}`)
-}))
-
-router.get('/:id', catchAsync(async (req, res) => {
-    // Nested populate for reviews
-    // The reviews shall have the author populated
-    const campground = await Campground.findById(req.params.id).populate({
-        path: 'reviews',
-        populate: {
-            path: 'author'
-        }
-    }).populate('author')
-    if (!campground) {
-        req.flash('error', 'Campground not found')
-        return res.redirect('/campgrounds')
-    }
-    res.render('campgrounds/show', { campground })
-}))
-
-router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id)
-    if (!campground) {
-        req.flash('error', 'Campground not found')
-        return res.redirect('/campgrounds')
-    }
-    res.render('campgrounds/edit', { campground })
-}))
+// Render the campground edit form 
+router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(campgroundController.renderEditForm))
 
 // Editing a campground
-router.put('/:id', isLoggedIn, validateCampground, catchAsync(async (req, res) => {
-    const { id } = req.params
-    // First we find the campground 
-    const campground = await Campground.findById(id)
-    // Then we check to see if the currently logged on user
-    // is the author of the campground
-    if (!campground.author.equals(req.user._id)) {
-        req.flash('error', 'You do not have permission to do that!')
-        return res.redirect(`/campgrounds/${id}`)
-    }
-    const campground2 = await Campground.findByIdAndUpdate(id, { ...req.body.campground })
-    req.flash('success', 'Successfully updated campground!')
-    res.redirect(`/campgrounds/${campground._id}`)
-}))
+router.put('/:id', isLoggedIn, validateCampground, catchAsync(campgroundController.editCampground))
 
 // Deleting a campground
-router.delete('/:id', isLoggedIn, catchAsync(async (req, res) => {
-    const { id } = req.params
-    // First we find the campground 
-    const campground = await Campground.findById(id)
-    // Then we check to see if the currently logged on user
-    // is the author of the campground
-    if (!campground.author.equals(req.user._id)) {
-        req.flash('error', 'You do not have permission to do that!')
-        return res.redirect(`/campgrounds/${id}`)
-    }
-    const campground2 = await Campground.findByIdAndDelete(id)
-    req.flash('success', 'Successfully deleted campground!')
-    res.redirect('/campgrounds')
-}))
+router.delete('/:id', isLoggedIn, catchAsync(campgroundController.deleteCampground))
 
 module.exports = router
