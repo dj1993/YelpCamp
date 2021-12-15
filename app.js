@@ -8,9 +8,14 @@ const { campgroundSchema, reviewSchema } = require('./schemas.js')
 const catchAsync = require('./utils/catchAsync')
 const ExpressError = require('./utils/ExpressError')
 const methodOverride = require('method-override')
+const passport = require('passport')
+const localStrategy = require('passport-local')
+
 const Campground = require('./models/campground')
 const Review = require('./models/review')
+const User = require('./models/user')
 
+const userRoutes = require('./routes/users')
 const campgroundsRoutes = require('./routes/campgrounds')
 const reviewRoutes = require('./routes/reviews')
 
@@ -45,13 +50,24 @@ const sessionConfig = {
 app.use(session(sessionConfig))
 app.use(flash())
 
-// Midleware for Flash
+// Passport configuration
+app.use(passport.initialize())
+app.use(passport.session())
+passport.use(new localStrategy(User.authenticate()))
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
+
+// Local variables
 app.use((req, res, next) => {
+    // The currently logged in user
+    res.locals.currentUser = req.user
+    // Variables for Flash
     res.locals.success = req.flash('success')
     res.locals.error = req.flash('error')
     next()
 })
 
+app.use('/', userRoutes)
 app.use('/campgrounds', campgroundsRoutes)
 app.use('/campgrounds/:id/reviews', reviewRoutes)
 
