@@ -5,29 +5,27 @@ const ExpressError = require('../utils/ExpressError')
 const Campground = require('../models/campground')
 const { campgroundSchema } = require('../schemas.js')
 const { isLoggedIn, isAuthor, validateCampground } = require('../middleware')
+const multer = require('multer')
+const { storage } = require('../cloudinary')
+const upload = multer({ storage })
 
 // Controllers
 const campgroundController = require('../controllers/campgrounds')
 
-// Render the index form
-router.get('/', catchAsync(campgroundController.index))
+router.route('/')
+    .get(catchAsync(campgroundController.index))
+    .post(isLoggedIn, upload.array('image'), validateCampground, catchAsync(campgroundController.createCampground))
 
-// Render the new campground form
-router.get('/new', isLoggedIn, catchAsync(campgroundController.renderNewForm))
 
-// Create a campground
-router.post('/', isLoggedIn, validateCampground, catchAsync(campgroundController.createCampground))
+router.get('/new', isLoggedIn, campgroundController.renderNewForm)
 
-// Render the show campground page
-router.get('/:id', catchAsync(campgroundController.showCampground))
+router.route('/:id')
+    .get(catchAsync(campgroundController.showCampground))
+    .put(isLoggedIn, isAuthor, upload.array('image'), validateCampground, catchAsync(campgroundController.editCampground))
+    .delete(isLoggedIn, isAuthor, catchAsync(campgroundController.deleteCampground));
 
-// Render the campground edit form 
 router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(campgroundController.renderEditForm))
 
-// Editing a campground
-router.put('/:id', isLoggedIn, validateCampground, catchAsync(campgroundController.editCampground))
 
-// Deleting a campground
-router.delete('/:id', isLoggedIn, catchAsync(campgroundController.deleteCampground))
 
-module.exports = router
+module.exports = router;

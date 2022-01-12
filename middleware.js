@@ -45,7 +45,7 @@ module.exports.validateCampground = (req, res, next) => {
         // Joi delivers an array with possibly many error messages
         // We need to join them
         const msg = error.details.map(el => el.message).join(',')
-        console.log(msg)
+        console.log(error._original.campground.images)
         throw new ExpressError(msg, 400)
     } else {
         next()
