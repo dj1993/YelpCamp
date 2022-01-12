@@ -1,44 +1,54 @@
-const mongoose = require('mongoose')
-const cities = require('./cities')
-const { places, descriptors } = require('./seedHelpers')
-const Campground = require('../models/campground')
+const mongoose = require('mongoose');
+const cities = require('./cities');
+const { places, descriptors } = require('./seedHelpers');
+const Campground = require('../models/campground');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp')
 
-const db = mongoose.connection
-db.on("error", console.error.bind(console, "connection error:"))
+const db = mongoose.connection;
+
+db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", () => {
-    console.log("Database connected")
-})
+    console.log("Database connected");
+});
 
-const sample = array => array[Math.floor(Math.random() * array.length)]
+const sample = array => array[Math.floor(Math.random() * array.length)];
 
-// Delete everything in the Campground database
-// ... and then put all the seeds
+
 const seedDB = async () => {
-    await Campground.deleteMany({})
-    for (let i = 0; i < 50; i++) {
-        const random1000 = Math.floor(Math.random() * 1000)
-        const price = Math.floor(Math.random() * 20) + 10
+    await Campground.deleteMany({});
+    for (let i = 0; i < 600; i++) {
+        const random1000 = Math.floor(Math.random() * 1000);
+        const price = Math.floor(Math.random() * 20) + 10;
         const camp = new Campground({
+            //YOUR USER ID
             author: '61b8ba232588e329ff307fa4',
             location: `${cities[random1000].city}, ${cities[random1000].state}`,
             title: `${sample(descriptors)} ${sample(places)}`,
-            image: 'http://source.unsplash.com/collection/483251',
-            "images": [
+            description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quibusdam dolores vero perferendis laudantium, consequuntur voluptatibus nulla architecto, sit soluta esse iure sed labore ipsam a cum nihil atque molestiae deserunt!',
+            price,
+            geometry: {
+                type: "Point",
+                coordinates: [
+                    cities[random1000].longitude,
+                    cities[random1000].latitude,
+                ]
+            },
+            images: [
                 {
-                    "url": "https://res.cloudinary.com/dsnyy4wpx/image/upload/v1639665578/YelpCamp/x28g9wqlsgflo4zlhbk2.jpg",
-                    "filename": 'YelpCamp/x28g9wqlsgflo4zlhbk2'
+                    url: 'https://res.cloudinary.com/douqbebwk/image/upload/v1600060601/YelpCamp/ahfnenvca4tha00h2ubt.png',
+                    filename: 'YelpCamp/ahfnenvca4tha00h2ubt'
                 },
                 {
-                    "url": "https://res.cloudinary.com/dsnyy4wpx/image/upload/v1639665579/YelpCamp/ufmswo1jjuvcnptwag8q.jpg",
-                    "filename": 'YelpCamp/ufmswo1jjuvcnptwag8q'
-                }],
-            description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Consequatur molestias nemo minima doloremque quasi omnis sed laborum maiores aspernatur neque. Incidunt inventore nostrum ipsam? Expedita sed nihil voluptates fugit adipisci. Maxime voluptate dignissimos perferendis expedita, vel, dolor quidem fugit ea officiis quis commodi mollitia omnis, cum quos! Adipisci commodi vero recusandae harum, dolorum ea pariatur accusamus soluta, consectetur tempore eum.',
-            price: price
+                    url: 'https://res.cloudinary.com/douqbebwk/image/upload/v1600060601/YelpCamp/ruyoaxgf72nzpi4y6cdi.png',
+                    filename: 'YelpCamp/ruyoaxgf72nzpi4y6cdi'
+                }
+            ]
         })
-        await camp.save()
+        await camp.save();
     }
 }
 
-seedDB()
+seedDB().then(() => {
+    mongoose.connection.close();
+})
