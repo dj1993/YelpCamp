@@ -1,10 +1,11 @@
 {
-  "name": "section_39_yelpcamp_01",
+  "name": "yelpcamp",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "start": "node app.js"
   },
   "keywords": [],
   "author": "",
